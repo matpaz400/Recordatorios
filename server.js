@@ -11,7 +11,7 @@ db.exec('CREATE TABLE IF NOT EXISTS profiles (token TEXT PRIMARY KEY, state TEXT
 const keyFile=path.join(data,'vapid.json');
 if(!fs.existsSync(keyFile))fs.writeFileSync(keyFile,JSON.stringify(webpush.generateVAPIDKeys()),{mode:0o600});
 const keys=JSON.parse(fs.readFileSync(keyFile));
-webpush.setVapidDetails(process.env.VAPID_SUBJECT||'https://example.com',keys.publicKey,keys.privateKey);
+webpush.setVapidDetails(process.env.VAPID_SUBJECT||'https://github.com/matpaz400/Recordatorios',keys.publicKey,keys.privateKey);
 const read=token=>{const r=db.prepare('SELECT state FROM profiles WHERE token=?').get(token);return r?JSON.parse(r.state):{tasks:[],settings:{startHour:8,endHour:21,timeZone:'America/Bogota',weekdaysOnly:false},subscription:null,lastSent:null}};
 const save=(token,state)=>db.prepare('INSERT INTO profiles VALUES (?,?) ON CONFLICT(token) DO UPDATE SET state=excluded.state').run(token,JSON.stringify(state));
 const json=(res,status,obj)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(obj))};
@@ -21,6 +21,7 @@ async function notify(state,title,message){await webpush.sendNotification(state.
 const server=http.createServer(async(req,res)=>{
  try{
  const url=new URL(req.url,'http://localhost');
+ if(url.pathname==='/healthz'){db.prepare('SELECT 1').get();return json(res,200,{ok:true})}
  if(url.pathname==='/api/config')return json(res,200,{subjects,schedule,publicKey:keys.publicKey});
  if(url.pathname.startsWith('/api/')){
  const token=req.headers.authorization?.replace(/^Bearer /,'');if(!token||!/^[a-f0-9]{64}$/.test(token))return json(res,401,{error:'Falta la clave de este dispositivo'});
@@ -44,5 +45,7 @@ const server=http.createServer(async(req,res)=>{
  }catch(e){console.error(e.message);json(res,500,{error:'No se pudo realizar la operación. Intenta otra vez.'})}
 });
 async function reminders(now=new Date()){for(const row of db.prepare('SELECT token,state FROM profiles').all()){const s=JSON.parse(row.state),today=localTime(now).day;const pending=s.tasks.filter(t=>!t.completedDay);if(!s.subscription||!pending.length||s.lastSent===today||!reminderDue(now,s.settings))continue;try{await notify(s,'Tu misión de hoy 🌱',`${pending.length} tarea${pending.length===1?'':'s'} pendiente${pending.length===1?'':'s'}. Dedica 15 minutos a ${pending[0].subject}.`);s.lastSent=today;save(row.token,s)}catch(e){if([404,410].includes(e.statusCode)){s.subscription=null;save(row.token,s)}console.error('No se pudo enviar un recordatorio:',e.statusCode||e.message)}}}
-if(require.main===module){server.listen(process.env.PORT||3000,'0.0.0.0',()=>console.log('Recordatorios iniciado'));let running=false;setInterval(async()=>{if(running)return;running=true;try{await reminders()}finally{running=false}},60000).unref();}
+if(require.main===module){
+ for(const signal of ['SIGTERM','SIGINT'])process.on(signal,()=>{server.close(()=>{db.close();process.exit(0)});setTimeout(()=>process.exit(1),10000).unref()});
+ server.listen(process.env.PORT||3000,'0.0.0.0',()=>console.log('Recordatorios iniciado'));let running=false;setInterval(async()=>{if(running)return;running=true;try{await reminders()}finally{running=false}},60000).unref();}
 module.exports={server,db,validSubscription,reminders};

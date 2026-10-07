@@ -30,10 +30,10 @@ Las pruebas automatizadas verifican creación/completado/eliminación, separaci�
 
 ## Publicación para usarlo en iPhone
 
-Se necesita un servidor Node con **HTTPS público**, proceso siempre activo y almacenamiento persistente. Un sitio estático por sí solo no ejecuta los recordatorios. No está publicado desde este entorno.
+Se necesita un servidor Node con **HTTPS público**, proceso siempre activo y almacenamiento persistente. Un sitio estático por sí solo no ejecuta los recordatorios. También hay una versión serverless gratuita con Cloudflare Workers y D1; consulta [DESPLIEGUE.md](DESPLIEGUE.md). Todavía no está publicada.
 
 1. Despliega el proyecto en un servicio que permita procesos Node permanentes y un disco persistente (un VPS o un servicio equivalente). Instalación: `npm ci`; inicio: `npm start`.
-2. Configura `DATA_DIR` en el disco persistente y `VAPID_SUBJECT` con una URL HTTPS de contacto de tu sitio o `mailto:tu-correo`. El valor de desarrollo es `https://example.com`.
+2. Configura `DATA_DIR` en el disco persistente y `VAPID_SUBJECT` con una URL HTTPS de contacto de tu sitio o `mailto:tu-correo`. El valor predeterminado es la URL pública de este repositorio.
 3. Usa una sola instancia; el planificador y SQLite están pensados para un proceso. Conserva copias seguras de los datos y claves VAPID.
 4. Permite conexiones HTTPS salientes hacia los servicios de notificaciones, incluido `web.push.apple.com` para iPhone. El endpoint exacto depende de la suscripción.
 5. En un iPhone con iOS 16.4 o posterior, abre la URL HTTPS en Safari. Compartir → Añadir a pantalla de inicio. Abre **Impulso** desde ese icono y pulsa **Activar recordatorios**; acepta el permiso.
@@ -44,3 +44,20 @@ Se necesita un servidor Node con **HTTPS público**, proceso siempre activo y al
 No hay cuentas ni sincronización entre dispositivos. Cada instalación se identifica con una clave aleatoria almacenada en el navegador; sus tareas se guardan en el servidor. Si borras los datos del navegador, pierdes el acceso a esa identidad. Safari y la app instalada pueden tener almacenamientos separados: añade la app a inicio antes de empezar a registrar tus tareas.
 
 Requiere conexión para gestionar tareas; no incluye modo sin conexión. El horario no se edita en la interfaz. Los festivos siguen la planificación semanal. No se han enviado notificaciones reales a un iPhone ni probado restauración en una máquina nueva.
+
+
+## Cloudflare: opción preparada sin costo
+
+Consulta [la guía para publicar gratis](DESPLIEGUE.md). La web y los avisos se ejecutan en Workers; D1 conserva las tareas y las claves privadas VAPID. No se necesita el servidor Node siempre activo en esta opción.
+
+Para probar localmente:
+
+```sh
+npm ci
+npm run db:local
+npm run dev:cloud
+```
+
+Validación específica de Workers: `npm run test:cloud`. Publicación después de autenticar Cloudflare: `npm run deploy:cloud`. El identificador de base de datos de `wrangler.jsonc` es un marcador para desarrollo local; el script lo sustituye en una configuración local ignorada al publicar.
+
+El `Dockerfile` queda como alternativa para un servidor propio, con un volumen permanente en `/app/data` y un proxy HTTPS. No incluye claves ni datos locales. La opción gratuita recomendada es Cloudflare.
