@@ -1,0 +1,29 @@
+{
+  "name": "recordatorios",
+  "version": "1.0.0",
+  "description": "Tu compañero de estudio: tareas, rachas y avisos en horas libres",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "check": "node --check server.js && node --check public/app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/matpaz400/Recordatorios.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/matpaz400/Recordatorios/issues"
+  },
+  "homepage": "https://github.com/matpaz400/Recordatorios#readme",
+  "dependencies": {
+    "web-push": "^3.6.7"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}
