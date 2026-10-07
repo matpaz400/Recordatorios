@@ -1,46 +1,17 @@
-# Publicar gratis para el iPhone
+# Publicar con GitHub Pages (gratis)
 
-La opción preparada es **Cloudflare Workers Free + D1 Free**, con una dirección HTTPS `workers.dev`. No hay que comprar un dominio ni mantener un servidor encendido. Los Cron Triggers ejecutan los avisos cada minuto aunque cierres la aplicación. Mantén la cuenta en el plan gratuito; no actives Workers Paid.
+La aplicación ahora es estática y no envía notificaciones. No se necesitan Cloudflare, bases de datos ni credenciales adicionales.
 
-El plan gratuito tiene cuotas. Para el uso personal previsto, el tráfico y los datos son pequeños. Si se alcanza una cuota gratuita, el servicio puede fallar o dejar de enviar avisos; no se configura una actualización automática a un plan de pago. Revisa las condiciones vigentes de Cloudflare al crear la cuenta.
+1. Abre [Settings → Pages](https://github.com/matpaz400/Recordatorios/settings/pages).
+2. En **Build and deployment**, elige **Deploy from a branch**.
+3. Selecciona la rama **main** y la carpeta **/docs**. Pulsa **Save**.
+4. Espera a que GitHub complete la publicación. La misma página mostrará la URL y **Visit site**.
+5. Abre esa URL desde Safari en el iPhone y añade la aplicación a la pantalla de inicio.
 
-## Para que Codex termine la publicación
+La dirección esperada con la configuración predeterminada es `https://matpaz400.github.io/Recordatorios/`. Usa el enlace que muestre GitHub como confirmación de la publicación.
 
-1. Crea o usa una [cuenta gratuita de Cloudflare](https://dash.cloudflare.com/sign-up).
-2. En [API Tokens](https://dash.cloudflare.com/profile/api-tokens), crea un token personalizado limitado a la cuenta elegida, con permisos de cuenta **Workers Scripts: Edit**, **D1: Edit** y **Account Settings: Read**. No hace falta compartir tu contraseña ni la clave API global.
-3. Añade el token **solo en los ajustes seguros del entorno**, en el requisito `CLOUDFLARE_API_TOKEN`. Añade también `CLOUDFLARE_ACCOUNT_ID` con el identificador de tu cuenta. No pegues el token en el chat ni lo subas a GitHub.
-4. Guarda esos cambios y avisa que el acceso está configurado. Codex podrá crear la base D1, aplicar la migración y publicar la web y los avisos.
+Los archivos y enlaces relativos están preparados para esa subcarpeta. `docs/.nojekyll` evita procesamientos innecesarios. El servicio worker conserva una copia local para uso sin conexión tras la primera visita.
 
-El entorno necesita acceso HTTPS a `api.cloudflare.com`, guardado en el borrador. Después de publicar se necesita permitir también el hostname concreto `workers.dev` de la aplicación para verificarla desde este entorno. Los avisos se enviarán desde Cloudflare a Apple, no desde el entorno de Codex.
+Los datos se guardan en el dispositivo. Usa la exportación de tareas para hacer copias. Si habías probado una versión previa con servidor, sus datos no se migran automáticamente; no se han eliminado los datos locales antiguos del entorno.
 
-## Alternativa desde tu computador
-
-Con Node.js 22.13 o posterior, desde una terminal:
-
-```sh
-git clone https://github.com/matpaz400/Recordatorios.git
-cd Recordatorios
-npm ci
-npx wrangler login
-npm run deploy:cloud
-```
-
-Wrangler abre el navegador para autorizar tu cuenta. Si tienes varias cuentas, define `CLOUDFLARE_ACCOUNT_ID` con la que está en el plan gratuito. El script busca o crea la base `impulso`, guarda su vínculo en `.wrangler/deploy.json` (ignorado por Git), aplica las migraciones y despliega. Al repetirlo reutiliza la misma base, sin borrar las tareas ni las claves. Si ya tienes una base llamada `impulso` para otro proyecto, cambia el nombre en el script y en `wrangler.jsonc` antes de publicar.
-
-La URL pública aparecerá en la salida del despliegue. Comprueba que `/healthz` devuelve `{"ok":true}` y que la web abre por HTTPS. La configuración del cron puede tardar hasta 15 minutos en propagarse.
-
-## En el iPhone
-
-1. Abre la URL pública en Safari (iOS 16.4 o posterior).
-2. Compartir → **Añadir a pantalla de inicio**.
-3. Abre **Impulso** desde su icono antes de crear tareas.
-4. Pulsa **Activar recordatorios** y permite las notificaciones.
-5. Crea una tarea pendiente. Prueba el aviso en una hora libre o comprueba el siguiente aviso programado.
-
-Los horarios de Colombia son: lunes/jueves 17:00, martes/miércoles 18:00, viernes 13:00 y fines de semana 10:00. Solo se avisa con tareas pendientes. La entrega depende también de la conexión y de los ajustes de notificaciones de iOS.
-
-## Qué está verificado
-
-Se verificaron la API, las tareas, las rachas, la base D1 local, la generación y persistencia de claves VAPID, el cifrado Web Push y el cron con un receptor simulado dentro del motor workerd. También se comprobó la interfaz móvil. La autenticación, el despliegue público y la recepción real en un iPhone requieren los pasos de cuenta anteriores.
-
-La versión de Cloudflare usa D1. La versión `npm start` conserva SQLite local y sirve para desarrollo o un servidor propio; son bases separadas y no se copian automáticamente entre ellas.
+Si quedaron requisitos de Cloudflare en los ajustes del entorno de Codex, ya no se utilizan. Puedes retirar `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID` allí; no hace falta completarlos.

@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#151f1c"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Impulso"><link rel="manifest" href="/manifest.json"><link rel="apple-touch-icon" href="/icon-192.png"><link rel="icon" href="/icon.svg"><link rel="stylesheet" href="/style.css"><title>Impulso · un paso cada día</title></head>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#151f1c"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Impulso"><link rel="manifest" href="./manifest.json"><link rel="apple-touch-icon" href="./icon-192.png"><link rel="icon" href="./icon.svg"><link rel="stylesheet" href="./style.css"><title>Impulso · un paso cada día</title></head>
 <body>
-<header><a href="/" class="brand"><span class="brand-icon">✳</span> impulso<span class="brand-dot">.</span></a><span class="header-note">TU COMPAÑERO DE ESTUDIO</span><span class="avatar">M</span></header>
+<header><a href="./" class="brand"><span class="brand-icon">✳</span> impulso<span class="brand-dot">.</span></a><span class="header-note">TU COMPAÑERO DE ESTUDIO</span><span class="avatar">M</span></header>
 <main>
 <div class="greeting"><div><p class="eyebrow" id="date">TU ESPACIO PARA AVANZAR</p><h1>Pequeños pasos.<br><span>Grandes logros.</span></h1><p>Organiza tus tareas, encuentra tu ritmo y mantén la chispa.</p></div><button class="primary" id="new-task">＋ Nueva tarea</button></div>
 <div class="dashboard">
@@ -13,13 +13,14 @@
 <div id="tasks" aria-live="polite"></div>
 </section>
 <aside>
-<section class="card today-card"><p class="eyebrow">ESPACIO PARA TI</p><h2>Tu día, a tu ritmo</h2><div id="today-schedule"></div><div class="free-note"><span>◷</span><div><strong id="next-time"></strong><p>Un recordatorio después de clases.<br>Sábado y domingo, a las 10:00.</p></div></div><button class="text-button" id="show-schedule">Ver horario semanal ↗</button></section>
-<section class="card notification-card"><span class="bell">♧</span><h2>Un empujoncito amable</h2><p>Un aviso diario si tienes tareas pendientes. Siempre al terminar las clases.</p><button class="dark-button" id="notifications">Activar recordatorios</button><p id="notification-status" class="small">En iPhone: Safari → Compartir → Añadir a pantalla de inicio. Abre la app instalada para activar los avisos (iOS 16.4 o posterior).</p><button class="text-button" id="test-push" hidden>Probar un aviso</button></section>
+<section class="card today-card"><p class="eyebrow">ESPACIO PARA TI</p><h2>Tu día, a tu ritmo</h2><div id="today-schedule"></div><div class="free-note"><span>◷</span><div><strong id="next-time"></strong><p>Un buen momento para avanzar<br>en tu próxima misión.</p></div></div><button class="text-button" id="show-schedule">Ver horario semanal ↗</button></section>
+<section class="card backup-card"><span class="bell">↗</span><h2>Tus tareas, contigo</h2><p>Se guardan en este navegador. Exporta una copia para proteger tu progreso o llevarlo a otro dispositivo.</p><button class="dark-button" id="export-tasks">Exportar mis tareas</button><label class="import-label">Importar una copia<input id="import-tasks" type="file" accept=".json,application/json"></label><p class="small">En iPhone: Safari → Compartir → Añadir a pantalla de inicio. Empieza a registrar tus tareas desde la app instalada.</p></section>
 <section class="quote"><span>“</span><p>No necesitas hacerlo todo hoy.<br>Solo dar el siguiente paso.</p><small>TU YO DEL FUTURO TE LO AGRADECERÁ</small></section>
 </aside></div>
 <footer>Hecho para avanzar, a tu manera. <span>✳</span> Hora de Colombia · Tus clases siempre primero</footer>
 </main>
 <dialog id="task-dialog"><form id="task-form"><div class="dialog-top"><h2>Tu próxima misión</h2><button type="button" data-close="task-dialog" aria-label="Cerrar">✕</button></div><p>Hazla concreta. Un pequeño paso es un gran inicio.</p><label>¿Qué tienes que hacer?<input name="title" required maxlength="180" placeholder="Ej. Resolver el taller de mecanismos"></label><label>Materia<select name="subject" id="task-subject" required></select></label><label>¿De qué se trata?<textarea name="description" maxlength="2000" placeholder="Instrucciones, temas o lo que necesitas recordar…" rows="4"></textarea></label><label>Fecha de entrega (opcional)<input type="date" name="due"></label><button class="primary" type="submit">Crear misión ＋</button></form></dialog>
-<dialog id="schedule-dialog"><div class="dialog-top"><h2>Tu horario semanal</h2><button data-close="schedule-dialog" aria-label="Cerrar">✕</button></div><p>Transcrito de tu horario. Los avisos llegan al finalizar la última clase.</p><div id="full-schedule"></div></dialog>
+<dialog id="schedule-dialog"><div class="dialog-top"><h2>Tu horario semanal</h2><button data-close="schedule-dialog" aria-label="Cerrar">✕</button></div><p>Transcrito de tu horario. Encuentra tus momentos libres para estudiar.</p><div id="full-schedule"></div></dialog>
 <div id="toast" role="status" hidden></div>
-<script src="/app.js" defer></script></body></html>
+<script src="./data.js" defer></script>
+<script src="./app.js" defer></script></body></html>

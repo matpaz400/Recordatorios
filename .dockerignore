@@ -1,8 +1,0 @@
-.git
-node_modules
-data
-.env
-*.log
-test
-.wrangler
-.dev.vars

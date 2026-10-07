@@ -1,11 +1,17 @@
 const $=s=>document.querySelector(s);
-let token=localStorage.getItem('impulso-token');if(!token){token=Array.from(crypto.getRandomValues(new Uint8Array(32)),n=>n.toString(16).padStart(2,'0')).join('');localStorage.setItem('impulso-token',token)}
-let config,state,filter='pending';
+const storageKey='impulso-tasks-v1';
+const config=window.Impulso;let state,filter='pending';
 const days=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 let toastTimer;function toast(message){$('#toast').textContent=message;$('#toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').hidden=true,6500)}
-async function api(route,method='GET',data){const r=await fetch('/api/'+route,{method,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},...(data!==undefined?{body:JSON.stringify(data)}:{})});const b=await r.json();if(!r.ok)throw Error(b.error||'No se pudo conectar');return b}
+function loadTasks(){const value=localStorage.getItem(storageKey);if(!value)return [];const tasks=JSON.parse(value);if(!Array.isArray(tasks))throw Error('No se pudieron leer tus tareas guardadas.');return tasks}
+async function api(route,method='GET',data){
+ const tasks=loadTasks();
+ if(route==='tasks'&&method==='POST'){if(!data.title?.trim()||!config.subjects.includes(data.subject))throw Error('Revisa el título y la materia');tasks.unshift({id:crypto.randomUUID(),title:data.title.trim(),subject:data.subject,description:data.description||'',due:data.due||'',completedDay:null})}
+ else if(route.startsWith('tasks/')){const id=route.slice(6),task=tasks.find(t=>t.id===id);if(!task)throw Error('Tarea no encontrada');if(method==='PATCH')task.completedDay=data.completed?config.today():null;else if(method==='DELETE')tasks.splice(tasks.indexOf(task),1)}
+ try{localStorage.setItem(storageKey,JSON.stringify(tasks))}catch{throw Error('No hay espacio para guardar. Exporta tus tareas antes de liberar espacio.')}
+}
 function el(tag,text,className){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(className)e.className=className;return e}
-async function refresh(){state=await api('state');render()}
+async function refresh(){const tasks=loadTasks(),today=config.today();state={tasks,today,streak:config.streak(tasks,today)};render()}
 function render(){
  const done=state.tasks.filter(t=>t.completedDay),pending=state.tasks.filter(t=>!t.completedDay);
  $('#streak').textContent=state.streak;$('#pending-count').textContent=pending.length;$('#done-count').textContent=done.length;$('#xp').textContent=done.length*25;$('#mission-count').textContent=pending.length;
@@ -20,19 +26,21 @@ function render(){
  const del=el('button','×','delete');del.setAttribute('aria-label','Eliminar: '+t.title);del.onclick=async()=>{if(!confirm('¿Eliminar esta tarea? Si estaba completada, se quitarán su XP y su aporte a la racha.'))return;try{await api('tasks/'+t.id,'DELETE');await refresh()}catch(e){toast(e.message)}};row.append(check,content,del);$('#tasks').append(row)}
  const weekday=today.getUTCDay();$('#date').textContent=new Intl.DateTimeFormat('es-CO',{weekday:'long',day:'numeric',month:'long',timeZone:'America/Bogota'}).format(new Date()).toUpperCase();
  $('#today-schedule').replaceChildren();for(const [s,e,i] of config.schedule[weekday]||[])$('#today-schedule').append(classRow(s,e,i));if(!(config.schedule[weekday]||[]).length)$('#today-schedule').append(el('p','Hoy no tienes clases. Un poco de descanso también es parte del progreso.'));
- $('#next-time').textContent='Aviso de hoy · '+({0:'10:00',1:'17:00',2:'18:00',3:'18:00',4:'17:00',5:'13:00',6:'10:00'}[weekday]);
- $('#notifications').textContent=state.notifications?'Desactivar recordatorios':'Activar recordatorios';$('#test-push').hidden=!state.notifications;if(state.notifications)$('#notification-status').textContent='Activados en este dispositivo. Mantén la app instalada. Se enviará un aviso al día si hay tareas pendientes.';
+ const classes=config.schedule[weekday]||[];$('#next-time').textContent=classes.length?'Terminas clases a las '+classes.at(-1)[1]+':00':'Hoy puedes elegir tu ritmo';
 }
 function classRow(s,e,i){const row=el('div',undefined,'class-row');row.append(el('time',String(s).padStart(2,'0')+':00–'+String(e).padStart(2,'0')+':00'),el('b',config.subjects[i]));return row}
 $('#new-task').onclick=()=>$('#task-dialog').showModal();$('#show-schedule').onclick=()=>$('#schedule-dialog').showModal();document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$('#'+b.dataset.close).close());
 $('#subject-filter').onchange=render;document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(x=>{x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',String(x===b))});render()});
 $('#task-form').onsubmit=async e=>{e.preventDefault();const button=e.target.querySelector('[type=submit]');button.disabled=true;try{await api('tasks','POST',Object.fromEntries(new FormData(e.target)));e.target.reset();$('#task-dialog').close();filter='pending';document.querySelector('[data-filter=pending]').click();await refresh();toast('Nueva misión lista. ¡Tú puedes!')}catch(err){toast(err.message)}finally{button.disabled=false}};
-function decodeKey(s){return Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0))}
-$('#notifications').onclick=async()=>{const button=$('#notifications');button.disabled=true;try{
- if(state.notifications){await api('subscription','DELETE');const registration=await navigator.serviceWorker.ready;const sub=await registration.pushManager.getSubscription();if(sub)await sub.unsubscribe();$('#notification-status').textContent='Recordatorios desactivados.';await refresh();return}
- if(!('serviceWorker'in navigator)||!('PushManager'in window)||!('Notification'in window))throw Error('Para activar avisos en iPhone, añade esta web a la pantalla de inicio desde Safari y abre la app instalada. Necesitas iOS 16.4 o posterior.');
- const permission=await Notification.requestPermission();if(permission!=='granted')throw Error('Permite las notificaciones en los ajustes de tu iPhone para recibir avisos.');const registration=await navigator.serviceWorker.ready;let sub=await registration.pushManager.getSubscription();if(!sub)sub=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:decodeKey(config.publicKey)});await api('subscription','POST',sub.toJSON());await refresh();toast('¡Listo! Un empujoncito después de clases.');
- }catch(e){toast(e.message)}finally{button.disabled=false}};
-$('#test-push').onclick=async()=>{try{await api('test-notification','POST',{});toast('Aviso de prueba enviado')}catch(e){toast(e.message)}};
-async function init(){try{if('serviceWorker'in navigator)await navigator.serviceWorker.register('/sw.js');config=await fetch('/api/config').then(r=>r.json());for(const s of config.subjects){$('#task-subject').append(new Option(s,s));$('#subject-filter').append(new Option(s,s))}for(let day=1;day<=5;day++){$('#full-schedule').append(el('h3',days[day]));for(const [s,e,i] of config.schedule[day])$('#full-schedule').append(classRow(s,e,i))}await refresh()}catch(e){$('#tasks').replaceChildren(el('div','No se pudo conectar al servidor. Revisa tu conexión y vuelve a cargar.','empty'));toast(e.message)}}init();
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&config)refresh().catch(e=>toast(e.message))});
+async function init(){try{
+ for(const subject of config.subjects){$('#task-subject').append(new Option(subject,subject));$('#subject-filter').append(new Option(subject,subject))}
+ for(let day=1;day<=5;day++){$('#full-schedule').append(el('h3',days[day]));for(const [start,end,i] of config.schedule[day])$('#full-schedule').append(classRow(start,end,i))}
+ await refresh();
+ if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>toast('El modo sin conexión no está disponible en este navegador.'));
+ }catch(error){$('#tasks').replaceChildren(el('div','No se pudieron abrir tus tareas. No borres los datos del navegador antes de recuperar tu copia.','empty'));toast(error.message)}}
+$('#export-tasks').onclick=()=>{try{const tasks=loadTasks();const url=URL.createObjectURL(new Blob([JSON.stringify({version:1,tasks},null,2)],{type:'application/json'}));const link=el('a');link.href=url;link.download='impulso-tareas-'+config.today()+'.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Copia exportada. Guárdala en Archivos.')}catch(error){toast(error.message)}};
+$('#import-tasks').onchange=async event=>{const file=event.target.files[0];if(!file)return;try{if(file.size>2000000)throw Error('La copia es demasiado grande.');const backup=JSON.parse(await file.text());if(backup.version!==1||!Array.isArray(backup.tasks)||backup.tasks.some(t=>!t||typeof t.id!=='string'||typeof t.title!=='string'||!t.title.trim()||t.title.length>180||!config.subjects.includes(t.subject)||typeof t.description!=='string'||t.description.length>2000||typeof t.due!=='string'||(t.due&&!validDay(t.due))||(t.completedDay!==null&&!validDay(t.completedDay))))throw Error('La copia no tiene el formato de Impulso.');const tasks=loadTasks(),ids=new Set(tasks.map(t=>t.id));for(const task of backup.tasks)if(!ids.has(task.id)){tasks.push(task);ids.add(task.id)}localStorage.setItem(storageKey,JSON.stringify(tasks));await refresh();toast('Copia importada. Tus tareas actuales se conservaron.')}catch(error){toast(error.message)}finally{event.target.value=''}};
+function validDay(day){return typeof day==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(day)&&!Number.isNaN(Date.parse(day))&&new Date(day+'T12:00:00Z').toISOString().slice(0,10)===day}
+init();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh().catch(e=>toast(e.message))});
+window.addEventListener('storage',event=>{if(event.key===storageKey)refresh().catch(e=>toast(e.message))});
